@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="レビュー記録">
+<meta name="theme-color" content="#0F1A20">
+<meta name="description" content="コスメを成分・使用条件・経過で記録し、SNS別の投稿文を書き出せる無料のWebアプリ。記録は端末内にだけ保存されます。">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<title>コスメレビュー記録</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#EEF1F3; --surface:#FFFFFF; --sunk:#F5F7F8; --ink:#15212A; --mute:#5D6B76;
+  --line:#D6DDE2; --accent:#1C6E68; --accent-ink:#FFFFFF; --warn:#9A4A5E; --radius:10px;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
+}
+:root:not([data-theme="light"]){
+  @media (prefers-color-scheme: dark){
+    color-scheme: dark;
+    --bg:#0F1A20; --surface:#172530; --sunk:#132029; --ink:#E4ECF1;
+    --mute:#93A4B0; --line:#2A3A46; --accent:#4FB3A8; --accent-ink:#06211F; --warn:#E08BA0;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0F1A20; --surface:#172530; --sunk:#132029; --ink:#E4ECF1;
+  --mute:#93A4B0; --line:#2A3A46; --accent:#4FB3A8; --accent-ink:#06211F; --warn:#E08BA0;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top: env(safe-area-inset-top, 0px);}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",system-ui,sans-serif;
+  font-size:15px; line-height:1.7; -webkit-text-size-adjust:100%;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--surface);z-index:10}
+header{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:9;
+  background:var(--surface); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; gap:10px; padding:10px 14px;
+}
+header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.02em;flex:1}
+main{max-width:720px;margin:0 auto;padding:16px 14px 64px}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--accent);color:var(--accent-ink);border:none;border-radius:var(--radius);
+  padding:9px 14px;font-weight:600;font-size:14px}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.card h2{font-size:14px;margin:0 0 10px;font-weight:600}
+label{display:block;font-size:12px;color:var(--mute);margin:10px 0 3px}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--sunk);
+  border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+textarea{min-height:76px;resize:vertical;line-height:1.6}
+.row{display:flex;gap:10px}
+.row>*{flex:1;min-width:0}
+.muted{color:var(--mute);font-size:13px}
+.empty{padding:36px 4px;color:var(--mute)}
+.empty h2{color:var(--ink);font-size:17px;margin:0 0 8px}
+.empty ol{padding-left:1.2em;margin:0 0 20px}
+.item{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;color:inherit}
+.item .nm{font-weight:600}
+.item .meta{font-size:12.5px;color:var(--mute);margin-top:2px}
+.pr{display:inline-block;font-size:11px;font-weight:700;color:var(--warn);border:1px solid currentColor;
+  border-radius:4px;padding:0 5px;margin-right:6px;vertical-align:1px}
+.stage{position:relative;padding-left:26px;border-left:2px solid var(--line);margin-left:6px}
+.stage:last-child{border-left-color:transparent}
+.stage::before{content:"";position:absolute;left:-7px;top:16px;width:12px;height:12px;border-radius:50%;
+  background:var(--surface);border:2px solid var(--line)}
+.stage.done::before{background:var(--accent);border-color:var(--accent)}
+.stage.now::before{background:var(--surface);border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent)}
+.stage .card{margin-bottom:14px}
+.stage .hd{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.stage .hd b{font-size:14px}
+.stage .hd span{font-size:12px;color:var(--mute)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 2px}
+.chip{border:1px solid var(--line);background:var(--sunk);color:var(--mute);
+  border-radius:999px;padding:4px 11px;font-size:12.5px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.verdict{display:flex;gap:8px}
+.verdict .chip{flex:1;text-align:center;font-size:15px;padding:8px 0}
+.out textarea{min-height:230px;font-size:13.5px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+.tabs .chip{white-space:nowrap}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));
+  background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:13px;z-index:30;
+  opacity:0;pointer-events:none;transition:opacity .18s}
+.toast.on{opacity:1}
+.foot{display:flex;gap:8px;margin-top:18px}
+footer{max-width:720px;margin:0 auto;padding:24px 14px calc(32px + env(safe-area-inset-bottom,0px));
+  color:var(--mute);font-size:12.5px;line-height:1.8}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <button class="btn ghost small" id="back" hidden>戻る</button>
+  <h1 id="title">コスメレビュー記録</h1>
+  <button class="btn small" id="add">製品を追加</button>
+</header>
+<main id="view"></main>
+<footer>
+  記録はこの端末のブラウザにだけ保存されます。サーバーには何も送信しません。端末を変えるときは「書き出し」でJSONを保存し、移動先で「読み込み」をしてください。<br>
+  ブラウザの履歴やサイトデータを消すと記録も消えます。<br>
+  肌の異常が出たときは使用をやめ、医師や薬剤師に相談してください。
+</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = "cosme-review:v1";
+const STAGES = [
+  {k:"d0",  label:"初回",   day:0,  hint:"刺激・香り・テクスチャー"},
+  {k:"d3",  label:"3日目",  day:3,  hint:"赤み・かゆみ・ニキビ"},
+  {k:"d7",  label:"7日目",  day:7,  hint:"皮脂・保湿・キメ"},
+  {k:"d14", label:"14日目", day:14, hint:"継続しての総合"},
+  {k:"fin", label:"使い切り",day:null,hint:"最終評価・リピート判定"}
+];
+const FLAGS = ["刺激","赤み","かゆみ","ニキビ","乾燥","ベタつき"];
+const SOURCES = ["自費購入","提供（PR）","サンプル"];
+const VERDICTS = ["◎","○","△","×"];
+const PLATFORMS = ["X","Xスレッド","Instagram","note","動画台本","＠cosme・LIPS"];
+
+let data = [];
+let cur = null;
+let tab = "X";
+
+function load(){
+  try{ data = JSON.parse(localStorage.getItem(KEY) || "[]"); }
+  catch(e){ data = []; }
+  if(!Array.isArray(data)) data = [];
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(data)); }
+  catch(e){ toast("保存できませんでした。ブラウザの設定を確認してください"); }
+}
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("on");
+  clearTimeout(t._t); t._t = setTimeout(()=>t.classList.remove("on"), 1800);
+}
+function today(){ return new Date().toISOString().slice(0,10); }
+function daysFrom(d){
+  if(!d) return null;
+  const a = new Date(d+"T00:00:00"), b = new Date(today()+"T00:00:00");
+  return Math.floor((b-a)/86400000);
+}
+function esc(s){ return (s||"").toString(); }
+function v(s, ph){ const t = esc(s).trim(); return t ? t : "【"+ph+"】"; }
+function attr(s){ return esc(s).replace(/"/g,"&quot;"); }
+
+function blank(){
+  const p = {id:Date.now().toString(36), name:"", brand:"", size:"", price:"",
+    source:"自費購入", startDate:today(), skin:"", ingredients:"", claim:"",
+    amount:"", timing:"夜", withProducts:"", verdict:"", fit:"", logs:{}};
+  STAGES.forEach(s=>p.logs[s.k]={date:"",note:"",flags:[]});
+  return p;
+}
+function get(id){ return data.find(p=>p.id===id); }
+
+function renderList(){
+  cur = null;
+  document.getElementById("back").hidden = true;
+  document.getElementById("title").textContent = "コスメレビュー記録";
+  const el = document.getElementById("view");
+  if(!data.length){
+    el.innerHTML = `<div class="empty">
+      <h2>使った化粧品を、同じ条件で記録する</h2>
+      <p>成分と使用条件、そして日ごとの変化を分けて残すと、あとから読み返せるレビューになります。</p>
+      <ol>
+        <li>使い始めた製品を追加する</li>
+        <li>初回・3日・7日・14日・使い切りの欄に気づいたことを書く</li>
+        <li>X・Instagram・note などの投稿文をコピーする</li>
+      </ol>
+      <button class="btn" onclick="newItem()">最初の製品を追加</button>
+    </div>`;
+    return;
+  }
+  el.innerHTML = data.map(p=>{
+    const d = daysFrom(p.startDate);
+    const done = STAGES.filter(s=>(p.logs[s.k]?.note||"").trim()).length;
+    return `<button class="item" onclick="open_('${p.id}')">
+      <div class="nm">${p.source==="提供（PR）"?'<span class="pr">PR</span>':""}${v(p.name,"商品名")}</div>
+      <div class="meta">${esc(p.brand)||"ブランド未入力"} ・ ${d===null?"開始日未設定":"開始から"+d+"日"} ・ 記録 ${done}/5${p.verdict?" ・ "+p.verdict:""}</div>
+    </button>`;
+  }).join("") + `<div class="foot">
+      <button class="btn ghost small" onclick="exportJson()">書き出し</button>
+      <button class="btn ghost small" onclick="importJson()">読み込み</button>
+    </div>`;
+}
+
+function newItem(){ const p = blank(); data.unshift(p); save(); open_(p.id); }
+function open_(id){
+  cur = id; tab = "X";
+  document.getElementById("back").hidden = false;
+  document.getElementById("title").textContent = "記録";
+  renderDetail(); window.scrollTo(0,0);
+}
+
+function renderDetail(){
+  const p = get(cur); if(!p) return renderList();
+  const d = daysFrom(p.startDate);
+  const el = document.getElementById("view");
+  el.innerHTML = `
+  <div class="card">
+    <h2>基本情報</h2>
+    <label for="f-name">商品名</label><input id="f-name" value="${attr(p.name)}">
+    <div class="row">
+      <div><label for="f-brand">ブランド</label><input id="f-brand" value="${attr(p.brand)}"></div>
+      <div><label for="f-size">容量</label><input id="f-size" value="${attr(p.size)}"></div>
+    </div>
+    <div class="row">
+      <div><label for="f-price">価格</label><input id="f-price" value="${attr(p.price)}"></div>
+      <div><label for="f-source">入手</label><select id="f-source">${SOURCES.map(s=>`<option ${s===p.source?"selected":""}>${s}</option>`).join("")}</select></div>
+    </div>
+    <div class="row">
+      <div><label for="f-start">開始日</label><input id="f-start" type="date" value="${attr(p.startDate)}"></div>
+      <div><label for="f-timing">タイミング</label><select id="f-timing">${["朝","夜","朝夜"].map(s=>`<option ${s===p.timing?"selected":""}>${s}</option>`).join("")}</select></div>
+    </div>
+    <label for="f-amount">1回の使用量</label><input id="f-amount" value="${attr(p.amount)}" placeholder="2プッシュ など">
+    <label for="f-skin">肌質・開始時の肌状態</label><input id="f-skin" value="${attr(p.skin)}">
+    <label for="f-with">併用品</label><input id="f-with" value="${attr(p.withProducts)}">
+    <label for="f-ing">主な成分・注意成分</label><textarea id="f-ing">${esc(p.ingredients)}</textarea>
+    <label for="f-claim">メーカー公表の訴求</label><textarea id="f-claim">${esc(p.claim)}</textarea>
+  </div>
+  <div class="card"><h2>経過 ${d===null?"":`<span class="muted">（開始から${d}日）</span>`}</h2></div>
+  ${STAGES.map(s=>{
+    const lg = p.logs[s.k] || {note:"",flags:[],date:""};
+    const filled = (lg.note||"").trim().length>0;
+    const due = d!==null && s.day!==null && d>=s.day && !filled;
+    return `<div class="stage ${filled?"done":""} ${due?"now":""}">
+      <div class="card">
+        <div class="hd"><b>${s.label}</b><span>${s.hint}</span></div>
+        <div class="chips">${FLAGS.map(f=>`<button class="chip" aria-pressed="${(lg.flags||[]).includes(f)}" onclick="toggleFlag('${s.k}','${f}')">${f}</button>`).join("")}</div>
+        <textarea id="lg-${s.k}" placeholder="気づいたことを書く">${esc(lg.note)}</textarea>
+      </div>
+    </div>`;
+  }).join("")}
+  <div class="card">
+    <h2>結論</h2>
+    <div class="verdict">${VERDICTS.map(x=>`<button class="chip" aria-pressed="${p.verdict===x}" onclick="setVerdict('${x}')">${x}</button>`).join("")}</div>
+    <label for="f-fit">向く人・向かない人</label><textarea id="f-fit">${esc(p.fit)}</textarea>
+    <p class="muted" style="margin:10px 0 0">14日は合わないかを見る期間。リピート判定は使い切り後に。</p>
+  </div>
+  <div class="card out">
+    <h2>投稿文</h2>
+    <div class="tabs">${PLATFORMS.map(x=>`<button class="chip" aria-pressed="${tab===x}" onclick="setTab('${x}')">${x}</button>`).join("")}</div>
+    <textarea id="out" readonly>${esc(build(p,tab))}</textarea>
+    <div class="foot"><button class="btn" onclick="copyOut()">コピー</button></div>
+  </div>
+  <div class="foot">
+    <button class="btn ghost small" onclick="renderList()">一覧へ</button>
+    <button class="btn ghost small" style="color:var(--warn)" onclick="del()">この記録を削除</button>
+  </div>`;
+
+  const bind = (id, key)=>{
+    const n = document.getElementById(id); if(!n) return;
+    const h = ()=>{ const q=get(cur); q[key]=n.value; save(); refreshOut(); };
+    n.addEventListener("input", h); n.addEventListener("change", h);
+  };
+  bind("f-name","name"); bind("f-brand","brand"); bind("f-size","size"); bind("f-price","price");
+  bind("f-source","source"); bind("f-start","startDate"); bind("f-timing","timing");
+  bind("f-amount","amount"); bind("f-skin","skin"); bind("f-with","withProducts");
+  bind("f-ing","ingredients"); bind("f-claim","claim"); bind("f-fit","fit");
+  STAGES.forEach(s=>{
+    const n = document.getElementById("lg-"+s.k); if(!n) return;
+    n.addEventListener("input", ()=>{
+      const q=get(cur); q.logs[s.k] = q.logs[s.k]||{flags:[],date:""};
+      q.logs[s.k].note = n.value;
+      if(!q.logs[s.k].date) q.logs[s.k].date = today();
+      save(); refreshOut();
+    });
+  });
+}
+
+function toggleFlag(stage, f){
+  const p = get(cur); const lg = p.logs[stage] = p.logs[stage]||{note:"",flags:[],date:""};
+  lg.flags = lg.flags||[];
+  const i = lg.flags.indexOf(f);
+  if(i<0) lg.flags.push(f); else lg.flags.splice(i,1);
+  save(); renderDetail();
+}
+function setVerdict(x){ const p=get(cur); p.verdict = (p.verdict===x? "": x); save(); renderDetail(); }
+function setTab(x){ tab = x; renderDetail(); }
+function refreshOut(){ const n=document.getElementById("out"); if(n) n.value = build(get(cur), tab); }
+function copyOut(){
+  const n = document.getElementById("out");
+  navigator.clipboard.writeText(n.value).then(()=>toast("コピーしました"),()=>{
+    n.removeAttribute("readonly"); n.select(); document.execCommand("copy");
+    n.setAttribute("readonly",""); toast("コピーしました");
+  });
+}
+function del(){
+  if(!confirm("この製品の記録を削除します。元に戻せません。")) return;
+  data = data.filter(p=>p.id!==cur); save(); renderList();
+}
+
+function logLine(p, k){
+  const lg = p.logs[k] || {};
+  const note = (lg.note||"").trim();
+  const fl = (lg.flags||[]).length ? "（"+lg.flags.join("・")+"）" : "";
+  return note ? note + fl : "【】";
+}
+function prLine(p){
+  return p.source==="提供（PR）" ? "PR｜提供：" + v(p.brand,"ブランド名") + "\n\n" : "";
+}
+function cond(p){
+  return "肌：" + v(p.skin,"肌質／状態")
+    + "\n量：1回" + v(p.amount,"○プッシュ") + "・" + (p.timing||"夜")
+    + "\n併用：" + v(p.withProducts,"製品名")
+    + "\n入手：" + (p.source||"自費購入");
+}
+function build(p, kind){
+  if(!p) return "";
+  const n = v(p.name,"商品名");
+  const verdict = p.verdict || "【◎／○／△／×】";
+  if(kind==="X"){
+    return prLine(p) + n + "を14日使ったので記録\n\n" + cond(p)
+      + "\n\n3日目：" + logLine(p,"d3")
+      + "\n7日目：" + logLine(p,"d7")
+      + "\n14日目：" + logLine(p,"d14")
+      + "\n\n結論：" + verdict + "\n\n※私の肌での記録です";
+  }
+  if(kind==="Xスレッド"){
+    return prLine(p)
+      + "1/ " + n + "を14日間、条件を固定して使ったので記録を残します。入手は" + (p.source||"自費購入") + "です。\n\n"
+      + "2/ 使用条件\n" + cond(p) + "\n条件を書かないレビューは再現性がないので、まずここから。\n\n"
+      + "3/ 客観情報\n成分で注目したのは" + v(p.ingredients,"成分")
+      + "\nメーカーの訴求：" + v(p.claim,"訴求")
+      + "\n容量・価格：" + v(p.size,"容量") + "／" + v(p.price,"価格") + "\n\n"
+      + "4/ 経過\n初回：" + logLine(p,"d0")
+      + "\n3日：" + logLine(p,"d3")
+      + "\n7日：" + logLine(p,"d7")
+      + "\n14日：" + logLine(p,"d14") + "\n\n"
+      + "5/ 現時点の結論：" + verdict + "\n" + (p.fit||"")
+      + "\n14日は合わないかを見る期間なので、リピート判定は使い切ってから追記します。";
+  }
+  if(kind==="Instagram"){
+    return prLine(p) + n + "を条件を固定して14日間。\n\n"
+      + "▼使用条件\n" + cond(p) + "\n\n"
+      + "▼客観情報\n容量" + v(p.size,"容量") + "／価格" + v(p.price,"価格")
+      + "\n成分で注目したのは" + v(p.ingredients,"成分") + "\n\n"
+      + "▼経過\n初回：" + logLine(p,"d0")
+      + "\n3日：" + logLine(p,"d3")
+      + "\n7日：" + logLine(p,"d7")
+      + "\n14日：" + logLine(p,"d14") + "\n\n"
+      + "▼結論\n" + verdict + "\n" + v(p.fit,"こういう人に向く／向かない") + "\n\n"
+      + "使い切ったら最終判定を追記します。\n※個人の使用感で、効果を保証するものではありません\n\n"
+      + "#スキンケア #成分 #" + (esc(p.brand).replace(/\s/g,"") || "ブランド名");
+  }
+  if(kind==="note"){
+    return "タイトル：" + n + "を条件固定で14日間使った記録｜成分・使用感・経過\n\n"
+      + "## この記事の前提\n" + (p.source||"自費購入") + "。" + (p.source==="提供（PR）"?"提供を受けていますが、記録はそのまま載せます。":"") + "\n\n"
+      + "## 検証条件\n" + cond(p) + "\n期間：14日（開始 " + v(p.startDate,"開始日") + "）\n\n"
+      + "## 製品の客観情報\n成分：" + v(p.ingredients,"全成分と注目成分")
+      + "\nメーカー公表の訴求：" + v(p.claim,"訴求")
+      + "\n容量・価格：" + v(p.size,"容量") + "／" + v(p.price,"価格") + "\n\n"
+      + "## 使用記録\n### 初回\n" + logLine(p,"d0")
+      + "\n\n### 3日目\n" + logLine(p,"d3")
+      + "\n\n### 7日目\n" + logLine(p,"d7")
+      + "\n\n### 14日目\n" + logLine(p,"d14") + "\n\n"
+      + "## どんな人に向くか、向かないか\n" + v(p.fit,"向く人／向かない人") + "\n\n"
+      + "## 現時点の結論\n" + verdict + "\n\n"
+      + "## 使い切り後の追記\n" + logLine(p,"fin");
+  }
+  if(kind==="動画台本"){
+    return "0-2秒：" + n + "、14日使った結論から言います\n"
+      + "2-6秒：" + verdict + "です。理由は3つ\n"
+      + "6-14秒：テロップ／" + cond(p).replace(/\n/g,"・") + "\n"
+      + "14-24秒：初回と3日目／" + logLine(p,"d0") + "・" + logLine(p,"d3") + "\n"
+      + "24-34秒：7日〜14日／" + logLine(p,"d7") + "・" + logLine(p,"d14") + "\n"
+      + "34-40秒：" + v(p.fit,"向く人・向かない人") + "。使い切ったら追記します\n\n"
+      + "固定テロップ：" + (p.source==="提供（PR）" ? "PR（提供：" + v(p.brand,"ブランド名") + "）" : p.source||"自費購入");
+  }
+  return "【評価】" + verdict
+    + "\n【使用期間】14日（継続中）"
+    + "\n【入手】" + (p.source||"自費購入")
+    + "\n【肌質】" + v(p.skin,"肌質")
+    + "\n【使い方】1回" + v(p.amount,"量") + "／" + (p.timing||"夜") + "／併用" + v(p.withProducts,"製品名")
+    + "\n\n初回：" + logLine(p,"d0")
+    + "\n3日：" + logLine(p,"d3")
+    + "\n7日：" + logLine(p,"d7")
+    + "\n14日：" + logLine(p,"d14")
+    + "\n\n向く人・向かない人：" + v(p.fit,"")
+    + "\nリピート：使い切り後に判断";
+}
+
+function exportJson(){
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "cosme-review-" + today() + ".json";
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importJson(){
+  const i = document.createElement("input");
+  i.type = "file"; i.accept = "application/json";
+  i.onchange = ()=>{
+    const f = i.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = ()=>{
+      try{
+        const arr = JSON.parse(r.result);
+        if(!Array.isArray(arr)) throw 0;
+        const ids = new Set(data.map(x=>x.id));
+        arr.forEach(x=>{ if(!ids.has(x.id)) data.push(x); });
+        save(); renderList(); toast("読み込みました");
+      }catch(e){ toast("このファイルは読み込めませんでした"); }
+    };
+    r.readAsText(f);
+  };
+  i.click();
+}
+
+document.getElementById("add").addEventListener("click", newItem);
+document.getElementById("back").addEventListener("click", renderList);
+load(); renderList();
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+}
+</script>
+</body>
+</html>
