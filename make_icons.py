@@ -2,9 +2,9 @@
 # アイコン生成（外部ライブラリなし）。背景＋ボトル形のPNGを書き出す。
 import zlib, struct
 
-BG   = (0x0F, 0x1A, 0x20)
-TEAL = (0x1C, 0x6E, 0x68)
-INK  = (0xE8, 0xF2, 0xF0)
+BG   = (0xFF, 0xFF, 0xFF)
+ROSE = (0xD1, 0x47, 0x6C)
+SOFT = (0xFD, 0xEB, 0xEF)
 
 def rr(x, y, x0, y0, x1, y1, r):
     if x < x0 or x > x1 or y < y0 or y > y1: return False
@@ -21,11 +21,11 @@ def png(size, path):
         for x in range(size):
             u, v = x/s, y/s
             c = BG
-            if rr(u, v, 40, 40, 472, 472, 96): c = TEAL
-            if rr(u, v, 224, 92, 288, 170, 14): c = INK          # キャップ
-            if rr(u, v, 186, 170, 326, 420, 40): c = INK         # ボトル
-            if rr(u, v, 214, 232, 298, 250, 8): c = TEAL         # ラベルの線
-            if rr(u, v, 214, 272, 272, 290, 8): c = TEAL
+            if rr(u, v, 32, 32, 480, 480, 120): c = SOFT
+            if rr(u, v, 226, 96, 286, 168, 18): c = ROSE          # キャップ
+            if rr(u, v, 184, 168, 328, 424, 56): c = ROSE         # ボトル
+            if rr(u, v, 212, 236, 300, 254, 9): c = SOFT          # ラベルの線
+            if rr(u, v, 212, 278, 268, 296, 9): c = SOFT
             row += bytes(c)
         rows.append(bytes(row))
     raw = b"".join(rows)

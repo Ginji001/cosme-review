@@ -4,19 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="レビュー記録">
-<meta name="theme-color" content="#0F1A20">
-<meta name="description" content="コスメを成分・使用条件・経過で記録し、SNS別の投稿文を書き出せる無料のWebアプリ。記録は端末内にだけ保存されます。">
+<meta name="theme-color" content="#FFFFFF">
+<meta name="description" content="使ったコスメを成分・使用条件・経過で記録して、X・Instagram・note用の投稿文をそのまま作れる無料アプリ。記録は端末のなかだけに保存されます。">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
 <title>コスメレビュー記録</title>
 <style>
 :root{
   color-scheme: light;
-  --bg:#EEF1F3; --surface:#FFFFFF; --sunk:#F5F7F8; --ink:#15212A; --mute:#5D6B76;
-  --line:#D6DDE2; --accent:#1C6E68; --accent-ink:#FFFFFF; --warn:#9A4A5E; --radius:10px;
+  --bg:#FBF3F4; --surface:#FFFFFF; --sunk:#FDF7F7; --ink:#32222B; --mute:#8C7680;
+  --line:#F0DDE0; --accent:#D1476C; --accent-soft:#FDEBEF; --accent-ink:#FFFFFF;
+  --warn:#B2572C; --radius:18px;
+  --shadow:0 2px 10px rgba(146,90,108,.07);
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
@@ -24,80 +29,98 @@
 :root:not([data-theme="light"]){
   @media (prefers-color-scheme: dark){
     color-scheme: dark;
-    --bg:#0F1A20; --surface:#172530; --sunk:#132029; --ink:#E4ECF1;
-    --mute:#93A4B0; --line:#2A3A46; --accent:#4FB3A8; --accent-ink:#06211F; --warn:#E08BA0;
+    --bg:#1A1216; --surface:#251A1F; --sunk:#1F1519; --ink:#F2E7EA; --mute:#AF98A1;
+    --line:#3A2A31; --accent:#FF8EAC; --accent-soft:#36222A; --accent-ink:#2A1119;
+    --warn:#E8A87C; --shadow:none;
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --bg:#0F1A20; --surface:#172530; --sunk:#132029; --ink:#E4ECF1;
-  --mute:#93A4B0; --line:#2A3A46; --accent:#4FB3A8; --accent-ink:#06211F; --warn:#E08BA0;
+  --bg:#1A1216; --surface:#251A1F; --sunk:#1F1519; --ink:#F2E7EA; --mute:#AF98A1;
+  --line:#3A2A31; --accent:#FF8EAC; --accent-soft:#36222A; --accent-ink:#2A1119;
+  --warn:#E8A87C; --shadow:none;
 }
 *{box-sizing:border-box}
 html{scroll-padding-top: env(safe-area-inset-top, 0px);}
 body{
   margin:0; background:var(--bg); color:var(--ink);
   font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",system-ui,sans-serif;
-  font-size:15px; line-height:1.7; -webkit-text-size-adjust:100%;
+  font-size:15px; line-height:1.8; -webkit-text-size-adjust:100%;
 }
+h1,h2,h3,.btn,.empty h2,.stage .hd b{font-family:"Zen Maru Gothic","Hiragino Sans",sans-serif}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--surface);z-index:10}
 header{
   position:sticky; top:env(safe-area-inset-top,0px); z-index:9;
   background:var(--surface); border-bottom:1px solid var(--line);
-  display:flex; align-items:center; gap:10px; padding:10px 14px;
+  display:flex; align-items:center; gap:8px; padding:11px 14px;
 }
-header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.02em;flex:1}
-main{max-width:720px;margin:0 auto;padding:16px 14px 64px}
+header h1{font-size:15.5px;margin:0;font-weight:700;flex:1;letter-spacing:.03em}
+main{max-width:640px;margin:0 auto;padding:18px 14px 56px}
 button{font:inherit;cursor:pointer}
-.btn{background:var(--accent);color:var(--accent-ink);border:none;border-radius:var(--radius);
-  padding:9px 14px;font-weight:600;font-size:14px}
-.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
-.btn.small{padding:5px 10px;font-size:13px}
+.btn{background:var(--accent);color:var(--accent-ink);border:none;border-radius:999px;
+  padding:10px 18px;font-weight:700;font-size:14px}
+.btn.ghost{background:var(--accent-soft);color:var(--accent);border:none}
+.btn.small{padding:6px 13px;font-size:13px}
+.btn.plain{background:transparent;color:var(--mute);padding:6px 4px;font-weight:500}
 .btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin-bottom:12px}
-.card h2{font-size:14px;margin:0 0 10px;font-weight:600}
-label{display:block;font-size:12px;color:var(--mute);margin:10px 0 3px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card h2{font-size:14.5px;margin:0 0 12px;font-weight:700}
+label{display:block;font-size:12px;color:var(--mute);margin:12px 0 4px}
 input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--sunk);
-  border:1px solid var(--line);border-radius:8px;padding:8px 10px}
-textarea{min-height:76px;resize:vertical;line-height:1.6}
+  border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+textarea{min-height:76px;resize:vertical;line-height:1.7}
 .row{display:flex;gap:10px}
 .row>*{flex:1;min-width:0}
 .muted{color:var(--mute);font-size:13px}
-.empty{padding:36px 4px;color:var(--mute)}
-.empty h2{color:var(--ink);font-size:17px;margin:0 0 8px}
-.empty ol{padding-left:1.2em;margin:0 0 20px}
+.empty{padding:26px 2px 8px}
+.empty h2{font-size:21px;line-height:1.5;margin:0 0 10px;font-weight:700}
+.empty p{margin:0 0 22px;color:var(--mute)}
+.steps{list-style:none;padding:0;margin:0 0 24px;counter-reset:s}
+.steps li{counter-increment:s;position:relative;padding-left:42px;margin-bottom:14px}
+.steps li::before{content:counter(s);position:absolute;left:0;top:2px;width:28px;height:28px;
+  border-radius:50%;background:var(--accent-soft);color:var(--accent);
+  font-weight:700;font-size:13px;display:grid;place-items:center}
+.steps b{display:block;font-weight:700}
+.steps span{color:var(--mute);font-size:13.5px}
 .item{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);
-  border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;color:inherit}
-.item .nm{font-weight:600}
+  border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;color:inherit;box-shadow:var(--shadow)}
+.item .nm{font-weight:700}
 .item .meta{font-size:12.5px;color:var(--mute);margin-top:2px}
-.pr{display:inline-block;font-size:11px;font-weight:700;color:var(--warn);border:1px solid currentColor;
-  border-radius:4px;padding:0 5px;margin-right:6px;vertical-align:1px}
-.stage{position:relative;padding-left:26px;border-left:2px solid var(--line);margin-left:6px}
+.pr{display:inline-block;font-size:11px;font-weight:700;color:var(--warn);background:var(--accent-soft);
+  border-radius:6px;padding:1px 6px;margin-right:6px;vertical-align:1px}
+.stage{position:relative;padding-left:28px;border-left:2px solid var(--line);margin-left:7px}
 .stage:last-child{border-left-color:transparent}
-.stage::before{content:"";position:absolute;left:-7px;top:16px;width:12px;height:12px;border-radius:50%;
+.stage::before{content:"";position:absolute;left:-8px;top:18px;width:14px;height:14px;border-radius:50%;
   background:var(--surface);border:2px solid var(--line)}
 .stage.done::before{background:var(--accent);border-color:var(--accent)}
-.stage.now::before{background:var(--surface);border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent)}
+.stage.now::before{background:var(--surface);border-color:var(--accent);
+  box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 16%,transparent)}
 .stage .card{margin-bottom:14px}
-.stage .hd{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
-.stage .hd b{font-size:14px}
+.stage .hd{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.stage .hd b{font-size:15px}
 .stage .hd span{font-size:12px;color:var(--mute)}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 2px}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:4px 0 2px}
 .chip{border:1px solid var(--line);background:var(--sunk);color:var(--mute);
-  border-radius:999px;padding:4px 11px;font-size:12.5px}
-.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+  border-radius:999px;padding:5px 13px;font-size:12.5px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
 .verdict{display:flex;gap:8px}
-.verdict .chip{flex:1;text-align:center;font-size:15px;padding:8px 0}
+.verdict .chip{flex:1;text-align:center;font-size:16px;padding:9px 0}
 .out textarea{min-height:230px;font-size:13.5px}
-.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+.tabs{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px}
 .tabs .chip{white-space:nowrap}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));
-  background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:13px;z-index:30;
+  background:var(--ink);color:var(--surface);padding:10px 18px;border-radius:999px;font-size:13px;z-index:30;
   opacity:0;pointer-events:none;transition:opacity .18s}
 .toast.on{opacity:1}
-.foot{display:flex;gap:8px;margin-top:18px}
-footer{max-width:720px;margin:0 auto;padding:24px 14px calc(32px + env(safe-area-inset-bottom,0px));
-  color:var(--mute);font-size:12.5px;line-height:1.8}
+.foot{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.help h2{font-size:17px;margin:26px 0 8px;font-weight:700}
+.help h2:first-child{margin-top:4px}
+.help p{margin:0 0 10px}
+.help ul{margin:0 0 10px;padding-left:1.2em}
+.help .q{font-weight:700;margin:18px 0 2px}
+footer{max-width:640px;margin:0 auto;padding:8px 14px calc(36px + env(safe-area-inset-bottom,0px));
+  color:var(--mute);font-size:12.5px;line-height:1.9}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -105,13 +128,14 @@ footer{max-width:720px;margin:0 auto;padding:24px 14px calc(32px + env(safe-area
 <header>
   <button class="btn ghost small" id="back" hidden>戻る</button>
   <h1 id="title">コスメレビュー記録</h1>
-  <button class="btn small" id="add">製品を追加</button>
+  <button class="btn ghost small" id="help">使い方</button>
+  <button class="btn small" id="add">追加</button>
 </header>
 <main id="view"></main>
 <footer>
-  記録はこの端末のブラウザにだけ保存されます。サーバーには何も送信しません。端末を変えるときは「書き出し」でJSONを保存し、移動先で「読み込み」をしてください。<br>
-  ブラウザの履歴やサイトデータを消すと記録も消えます。<br>
-  肌の異常が出たときは使用をやめ、医師や薬剤師に相談してください。
+  記録はこの端末のブラウザのなかだけに保存されます。サーバーには何も送られません。<br>
+  ブラウザの履歴やサイトデータを消すと記録も消えるので、ときどき「書き出し」でJSONを保存しておくと安心です。<br>
+  肌に異常が出たときは使うのをやめて、医師や薬剤師に相談してください。
 </footer>
 <div class="toast" id="toast"></div>
 
@@ -121,7 +145,7 @@ const STAGES = [
   {k:"d0",  label:"初回",   day:0,  hint:"刺激・香り・テクスチャー"},
   {k:"d3",  label:"3日目",  day:3,  hint:"赤み・かゆみ・ニキビ"},
   {k:"d7",  label:"7日目",  day:7,  hint:"皮脂・保湿・キメ"},
-  {k:"d14", label:"14日目", day:14, hint:"継続しての総合"},
+  {k:"d14", label:"14日目", day:14, hint:"続けてみての総合"},
   {k:"fin", label:"使い切り",day:null,hint:"最終評価・リピート判定"}
 ];
 const FLAGS = ["刺激","赤み","かゆみ","ニキビ","乾燥","ベタつき"];
@@ -173,14 +197,15 @@ function renderList(){
   const el = document.getElementById("view");
   if(!data.length){
     el.innerHTML = `<div class="empty">
-      <h2>使った化粧品を、同じ条件で記録する</h2>
-      <p>成分と使用条件、そして日ごとの変化を分けて残すと、あとから読み返せるレビューになります。</p>
-      <ol>
-        <li>使い始めた製品を追加する</li>
-        <li>初回・3日・7日・14日・使い切りの欄に気づいたことを書く</li>
-        <li>X・Instagram・note などの投稿文をコピーする</li>
+      <h2>使ったコスメを、<br>同じ条件で記録する。</h2>
+      <p>成分と使い方、そして日ごとの変化を分けて残しておくと、あとから読み返せるレビューになります。</p>
+      <ol class="steps">
+        <li><b>使いはじめた製品を追加</b><span>商品名と開始日だけでも大丈夫</span></li>
+        <li><b>決めた日に気づいたことを書く</b><span>初回・3日・7日・14日・使い切り</span></li>
+        <li><b>投稿文をコピーする</b><span>X・Instagram・note などの形に整います</span></li>
       </ol>
       <button class="btn" onclick="newItem()">最初の製品を追加</button>
+      <button class="btn plain" onclick="renderHelp()">くわしい使い方</button>
     </div>`;
     return;
   }
@@ -195,6 +220,89 @@ function renderList(){
       <button class="btn ghost small" onclick="exportJson()">書き出し</button>
       <button class="btn ghost small" onclick="importJson()">読み込み</button>
     </div>`;
+}
+
+function renderHelp(){
+  cur = null;
+  document.getElementById("back").hidden = false;
+  document.getElementById("title").textContent = "使い方";
+  window.scrollTo(0,0);
+  document.getElementById("view").innerHTML = `<div class="help">
+    <div class="card">
+      <h2 style="margin-top:0">1. 使いはじめる日に、製品を追加する</h2>
+      <p>右上の「追加」を押すと記録がひとつできます。最初に入れておくのは次の3つです。</p>
+      <ul>
+        <li><b>商品名とブランド</b></li>
+        <li><b>開始日</b>（ここから経過日数が計算されます）</li>
+        <li><b>入手</b>（自費購入／提供（PR）／サンプル）</li>
+      </ul>
+      <p class="muted">余裕があれば、容量・価格・成分・メーカーが言っていることも入れておくと、あとの投稿文がそのまま使えます。</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">2. 使う条件をそろえる</h2>
+      <p>「1回の使用量」「朝・夜」「併用品」「使いはじめの肌状態」を書いておきます。ここがレビューのいちばん大事なところです。</p>
+      <p>同じ化粧品でも、量や併用品が違えば結果は変わります。条件が書いてあるレビューは、読んだ人が自分に当てはめて考えられます。</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">3. 決めた日に記録する</h2>
+      <p>記録する日は5回だけです。開始日からの日数を見て、次に書く欄が印で示されます。</p>
+      <ul>
+        <li><b>初回</b> … 刺激、香り、テクスチャー</li>
+        <li><b>3日目</b> … 赤み、かゆみ、ニキビ</li>
+        <li><b>7日目</b> … 皮脂、保湿、キメ</li>
+        <li><b>14日目</b> … 続けてみての総合</li>
+        <li><b>使い切り</b> … 最終評価とリピート判定</li>
+      </ul>
+      <p>上のボタン（刺激・赤み・かゆみ・ニキビ・乾燥・ベタつき）は、当てはまるものを押すだけ。メモは一言で十分です。</p>
+      <p class="muted">赤みやかゆみが出たら、日数を待たずに使うのをやめてください。</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">4. 結論を選ぶ</h2>
+      <p>◎（おすすめ）／○（条件つき）／△（ふつう）／×（なし）から選び、「向く人・向かない人」を書きます。</p>
+      <p>14日は「明らかに合わないかどうか」を見る期間です。リピートするかは、できれば1本使い切ってから決めてください。季節や湿度でも感じ方は変わります。</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">5. 投稿文をコピーする</h2>
+      <p>いちばん下の「投稿文」でSNSを選ぶと、入力した内容がその形に整います。「コピー」を押して貼り付けるだけです。</p>
+      <ul>
+        <li><b>X</b>／<b>Xスレッド</b></li>
+        <li><b>Instagram</b>（キャプション）</li>
+        <li><b>note</b>（見出しつきの記事構成）</li>
+        <li><b>動画台本</b>（40秒）</li>
+        <li><b>＠cosme・LIPS</b></li>
+      </ul>
+      <p>まだ書いていないところは【　】のまま出るので、そこだけ埋めれば完成します。</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">提供品（PR）のとき</h2>
+      <p>入手を「提供（PR）」にすると、投稿文のいちばん最初に「PR｜提供：ブランド名」が自動で入ります。</p>
+      <p>提供を受けた投稿であることは、本文の先頭に書くのが決まりです（ハッシュタグの最後に紛れ込ませる書き方は認められません）。動画なら最初から最後までテロップを出しておきます。</p>
+      <p class="muted">「シミが消える」「ニキビが治る」のような、化粧品で言える範囲を超える表現は書かないでください。自分が感じたことは「私の肌では」と主語をつけて書くと、製品の仕様と体感が混ざりません。</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">よくある質問</h2>
+      <p class="q">記録はどこに保存されますか？</p>
+      <p>この端末のブラウザのなかだけです。サーバーには送られないので、他の人には見えません。</p>
+      <p class="q">スマホを変えるときは？</p>
+      <p>一覧の「書き出し」でJSONを保存し、新しい端末でこのページを開いて「読み込み」をしてください。</p>
+      <p class="q">記録が消えました</p>
+      <p>ブラウザの履歴やサイトデータを消すと、いっしょに消えます。ときどき書き出しておくと安心です。</p>
+      <p class="q">ホーム画面に置けますか？</p>
+      <p>iPhoneは共有ボタンから「ホーム画面に追加」、Androidはメニューから「アプリをインストール」で、アプリのように開けます。</p>
+      <p class="q">お金はかかりますか？</p>
+      <p>無料です。登録もいりません。</p>
+    </div>
+
+    <div class="foot">
+      <button class="btn" onclick="renderList()">はじめる</button>
+    </div>
+  </div>`;
 }
 
 function newItem(){ const p = blank(); data.unshift(p); save(); open_(p.id); }
@@ -226,10 +334,10 @@ function renderDetail(){
       <div><label for="f-timing">タイミング</label><select id="f-timing">${["朝","夜","朝夜"].map(s=>`<option ${s===p.timing?"selected":""}>${s}</option>`).join("")}</select></div>
     </div>
     <label for="f-amount">1回の使用量</label><input id="f-amount" value="${attr(p.amount)}" placeholder="2プッシュ など">
-    <label for="f-skin">肌質・開始時の肌状態</label><input id="f-skin" value="${attr(p.skin)}">
+    <label for="f-skin">肌質・使いはじめの肌状態</label><input id="f-skin" value="${attr(p.skin)}">
     <label for="f-with">併用品</label><input id="f-with" value="${attr(p.withProducts)}">
     <label for="f-ing">主な成分・注意成分</label><textarea id="f-ing">${esc(p.ingredients)}</textarea>
-    <label for="f-claim">メーカー公表の訴求</label><textarea id="f-claim">${esc(p.claim)}</textarea>
+    <label for="f-claim">メーカーが言っていること</label><textarea id="f-claim">${esc(p.claim)}</textarea>
   </div>
   <div class="card"><h2>経過 ${d===null?"":`<span class="muted">（開始から${d}日）</span>`}</h2></div>
   ${STAGES.map(s=>{
@@ -258,7 +366,7 @@ function renderDetail(){
   </div>
   <div class="foot">
     <button class="btn ghost small" onclick="renderList()">一覧へ</button>
-    <button class="btn ghost small" style="color:var(--warn)" onclick="del()">この記録を削除</button>
+    <button class="btn plain" style="color:var(--warn)" onclick="del()">この記録を削除</button>
   </div>`;
 
   const bind = (id, key)=>{
@@ -421,6 +529,7 @@ function importJson(){
 }
 
 document.getElementById("add").addEventListener("click", newItem);
+document.getElementById("help").addEventListener("click", renderHelp);
 document.getElementById("back").addEventListener("click", renderList);
 load(); renderList();
 
