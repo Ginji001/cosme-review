@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="レビュー記録">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="description" content="使ったコスメやまつげ美容液を、成分・使用条件・経過で記録して、X・Instagram・note用の投稿文をそのまま作れる無料アプリ。記録は端末のなかだけに保存されます。">
+<meta name="description" content="スキンケア・まつげ美容液・ヘアケア・ボディを、成分と使用条件と経過で記録して、X・Instagram・note用の投稿文をそのまま作れる無料アプリ。記録は端末のなかだけに保存されます。">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
@@ -146,6 +146,7 @@ const CATS = {
   skin: {
     label:"スキンケア",
     period:"14日",
+    ph:"2プッシュ など",
     body:"肌",
     stateLabel:"肌質・使いはじめの肌状態",
     tags:"#スキンケア #成分",
@@ -162,6 +163,7 @@ const CATS = {
   lash: {
     label:"まつげ美容液",
     period:"2か月",
+    ph:"片目1回なぞる など",
     body:"まぶた・まつげ",
     stateLabel:"まぶた・まつげの状態（使いはじめ）",
     tags:"#まつげ美容液 #成分",
@@ -173,6 +175,41 @@ const CATS = {
       {k:"d14", label:"2週間",  day:14, hint:"抜けにくさ・手ざわり"},
       {k:"d30", label:"1か月",  day:30, hint:"ハリ・コシの印象"},
       {k:"d60", label:"2か月",  day:60, hint:"全体の印象・続けるか"},
+      {k:"fin", label:"使い切り",day:null,hint:"最終評価・リピート判定"}
+    ]
+  },
+  hair: {
+    label:"ヘアケア",
+    period:"1か月",
+    body:"髪・頭皮",
+    ph:"ポンプ2回 など",
+    stateLabel:"髪質・頭皮の状態（使いはじめ）",
+    tags:"#ヘアケア #成分",
+    note:"髪は1か月ほど使ってから判断してください。頭皮のかゆみ・フケ・赤みが出たときは、日数を待たずに中止を。",
+    flags:["かゆみ","フケ","きしみ","ごわつき","ベタつき","香りが強い"],
+    stages:[
+      {k:"d0",  label:"初回",   day:0,  hint:"洗い上がり・香り・きしみ"},
+      {k:"d7",  label:"1週間",  day:7,  hint:"指通り・乾かしやすさ"},
+      {k:"d14", label:"2週間",  day:14, hint:"まとまり・広がり・ツヤ"},
+      {k:"d30", label:"1か月",  day:30, hint:"頭皮・根元のベタつき"},
+      {k:"fin", label:"使い切り",day:null,hint:"最終評価・リピート判定"}
+    ]
+  },
+  body: {
+    label:"ボディ",
+    period:"1か月",
+    body:"体の肌",
+    ph:"500円玉くらい など",
+    stateLabel:"肌質・使いはじめの体の肌状態",
+    tags:"#ボディケア #成分",
+    note:"体の肌は顔より生まれ変わりに時間がかかります。1か月は続けてから判断してください。赤み・かゆみが出たときは、日数を待たずに中止を。",
+    flags:["刺激","赤み","かゆみ","乾燥","ベタつき","衣類につく"],
+    stages:[
+      {k:"d0",  label:"初回",   day:0,  hint:"刺激・香り・のび"},
+      {k:"d3",  label:"3日目",  day:3,  hint:"赤み・かゆみ"},
+      {k:"d7",  label:"1週間",  day:7,  hint:"乾燥・しっとり感"},
+      {k:"d14", label:"2週間",  day:14, hint:"ざらつき・手ざわり"},
+      {k:"d30", label:"1か月",  day:30, hint:"続けてみての総合"},
       {k:"fin", label:"使い切り",day:null,hint:"最終評価・リピート判定"}
     ]
   }
@@ -230,7 +267,7 @@ function renderList(){
   if(!data.length){
     el.innerHTML = `<div class="empty">
       <h2>使ったコスメを、<br>同じ条件で記録する。</h2>
-      <p>成分と使い方、そして日ごとの変化を分けて残しておくと、あとから読み返せるレビューになります。スキンケアとまつげ美容液に対応しています。</p>
+      <p>成分と使い方、そして日ごとの変化を分けて残しておくと、あとから読み返せるレビューになります。スキンケア・まつげ美容液・ヘアケア・ボディに対応しています。</p>
       <ol class="steps">
         <li><b>使いはじめた製品を追加</b><span>商品名と開始日だけでも大丈夫</span></li>
         <li><b>決めた日に気づいたことを書く</b><span>種類に合わせて記録する日が変わります</span></li>
@@ -265,7 +302,7 @@ function renderHelp(){
       <h2 style="margin-top:0">1. 使いはじめる日に、製品を追加する</h2>
       <p>右上の「追加」を押すと記録がひとつできます。最初に入れておくのは次の4つです。</p>
       <ul>
-        <li><b>種類</b>（スキンケア／まつげ美容液）</li>
+        <li><b>種類</b>（${Object.keys(CATS).map(k=>CATS[k].label).join("／")}）</li>
         <li><b>商品名とブランド</b></li>
         <li><b>開始日</b>（ここから経過日数が計算されます）</li>
         <li><b>入手</b>（自費購入／提供（PR）／サンプル）</li>
@@ -282,23 +319,7 @@ function renderHelp(){
     <div class="card">
       <h2 style="margin-top:0">3. 決めた日に記録する</h2>
       <p>記録する日は種類ごとに決まっています。開始日からの日数を見て、次に書く欄が印で示されます。</p>
-      <p><b>スキンケア（全5回）</b></p>
-      <ul>
-        <li><b>初回</b> … 刺激、香り、テクスチャー</li>
-        <li><b>3日目</b> … 赤み、かゆみ、ニキビ</li>
-        <li><b>7日目</b> … 皮脂、保湿、キメ</li>
-        <li><b>14日目</b> … 続けてみての総合</li>
-        <li><b>使い切り</b> … 最終評価とリピート判定</li>
-      </ul>
-      <p><b>まつげ美容液（全6回）</b></p>
-      <ul>
-        <li><b>初回</b> … しみないか、塗りやすさ</li>
-        <li><b>1週間</b> … まぶたのかゆみ、赤み</li>
-        <li><b>2週間</b> … 抜けにくさ、手ざわり</li>
-        <li><b>1か月</b> … ハリ・コシの印象</li>
-        <li><b>2か月</b> … 全体の印象、続けるか</li>
-        <li><b>使い切り</b> … 最終評価とリピート判定</li>
-      </ul>
+      ${Object.keys(CATS).map(k=>{const c=CATS[k];return `<p><b>${c.label}（全${c.stages.length}回）</b></p><ul>${c.stages.map(s=>`<li><b>${s.label}</b> … ${s.hint}</li>`).join("")}</ul>`;}).join("")}
       <p>上のボタンは、当てはまるものを押すだけ。メモは一言で十分です。</p>
       <p class="muted">赤みやかゆみが出たら、日数を待たずに使うのをやめてください。</p>
     </div>
@@ -311,9 +332,16 @@ function renderHelp(){
     </div>
 
     <div class="card">
+      <h2 style="margin-top:0">ヘアケア・ボディのとき</h2>
+      <p><b>ヘアケア</b>は、洗い上がりだけで決めず1か月まで見ます。シャンプーやトリートメントは、根元のベタつきや頭皮の状態が後から出てくることがあるためです。髪を乾かす方法や頻度も「併用品」や使用量の欄に書いておくと、読んだ人が再現できます。頭皮のかゆみ・フケ・赤みが出たときは中止して、続くようなら皮ふ科へ。</p>
+      <p><b>ボディ</b>は、体の肌が顔より生まれ変わりに時間がかかるので1か月まで見ます。季節と入浴後どれくらいで塗ったかで感じ方が大きく変わるので、使用量の欄に「お風呂上がりすぐ」などと書いておくと比べやすくなります。</p>
+      <p class="muted">書き方の注意：「髪が生える」「育毛」「やせる」「肌が白くなる」といった書き方は、化粧品ではできません。メーカーが公表している範囲で書いてください。</p>
+    </div>
+
+    <div class="card">
       <h2 style="margin-top:0">4. 結論を選ぶ</h2>
       <p>◎（おすすめ）／○（条件つき）／△（ふつう）／×（なし）から選び、「向く人・向かない人」を書きます。</p>
-      <p>スキンケアの14日、まつげ美容液の2か月は、どちらも「合うかどうか」を見るための期間です。リピートするかは、できれば1本使い切ってから決めてください。季節や湿度でも感じ方は変わります。</p>
+      <p>種類ごとに決めた期間（${Object.keys(CATS).map(k=>CATS[k].label+"は"+CATS[k].period).join("、")}）は、どれも「合うかどうか」を見るための期間です。リピートするかは、できれば1本使い切ってから決めてください。季節や湿度でも感じ方は変わります。</p>
     </div>
 
     <div class="card">
@@ -389,7 +417,7 @@ function renderDetail(){
       <div><label for="f-start">開始日</label><input id="f-start" type="date" value="${attr(p.startDate)}"></div>
       <div><label for="f-timing">タイミング</label><select id="f-timing">${["朝","夜","朝夜"].map(s=>`<option ${s===p.timing?"selected":""}>${s}</option>`).join("")}</select></div>
     </div>
-    <label for="f-amount">1回の使用量</label><input id="f-amount" value="${attr(p.amount)}" placeholder="${p.cat==="lash"?"片目1回なぞる など":"2プッシュ など"}">
+    <label for="f-amount">1回の使用量</label><input id="f-amount" value="${attr(p.amount)}" placeholder="${c.ph || ""}">
     <label for="f-skin">${c.stateLabel}</label><input id="f-skin" value="${attr(p.skin)}">
     <label for="f-with">併用品</label><input id="f-with" value="${attr(p.withProducts)}">
     <label for="f-ing">主な成分・注意成分</label><textarea id="f-ing">${esc(p.ingredients)}</textarea>
