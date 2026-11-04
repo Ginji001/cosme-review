@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="レビュー記録">
 <meta name="theme-color" content="#FFFFFF">
-<meta name="description" content="使ったコスメを成分・使用条件・経過で記録して、X・Instagram・note用の投稿文をそのまま作れる無料アプリ。記録は端末のなかだけに保存されます。">
+<meta name="description" content="使ったコスメやまつげ美容液を、成分・使用条件・経過で記録して、X・Instagram・note用の投稿文をそのまま作れる無料アプリ。記録は端末のなかだけに保存されます。">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
@@ -135,20 +135,48 @@ footer{max-width:640px;margin:0 auto;padding:8px 14px calc(36px + env(safe-area-
 <footer>
   記録はこの端末のブラウザのなかだけに保存されます。サーバーには何も送られません。<br>
   ブラウザの履歴やサイトデータを消すと記録も消えるので、ときどき「書き出し」でJSONを保存しておくと安心です。<br>
-  肌に異常が出たときは使うのをやめて、医師や薬剤師に相談してください。
+  肌や目に異常が出たときは使うのをやめて、医師や薬剤師に相談してください。
 </footer>
 <div class="toast" id="toast"></div>
 
 <script>
 const KEY = "cosme-review:v1";
-const STAGES = [
-  {k:"d0",  label:"初回",   day:0,  hint:"刺激・香り・テクスチャー"},
-  {k:"d3",  label:"3日目",  day:3,  hint:"赤み・かゆみ・ニキビ"},
-  {k:"d7",  label:"7日目",  day:7,  hint:"皮脂・保湿・キメ"},
-  {k:"d14", label:"14日目", day:14, hint:"続けてみての総合"},
-  {k:"fin", label:"使い切り",day:null,hint:"最終評価・リピート判定"}
-];
-const FLAGS = ["刺激","赤み","かゆみ","ニキビ","乾燥","ベタつき"];
+
+const CATS = {
+  skin: {
+    label:"スキンケア",
+    period:"14日",
+    body:"肌",
+    stateLabel:"肌質・使いはじめの肌状態",
+    tags:"#スキンケア #成分",
+    note:"14日は「明らかに合わないかどうか」を見る期間です。リピートするかは、できれば1本使い切ってから決めてください。",
+    flags:["刺激","赤み","かゆみ","ニキビ","乾燥","ベタつき"],
+    stages:[
+      {k:"d0",  label:"初回",   day:0,  hint:"刺激・香り・テクスチャー"},
+      {k:"d3",  label:"3日目",  day:3,  hint:"赤み・かゆみ・ニキビ"},
+      {k:"d7",  label:"7日目",  day:7,  hint:"皮脂・保湿・キメ"},
+      {k:"d14", label:"14日目", day:14, hint:"続けてみての総合"},
+      {k:"fin", label:"使い切り",day:null,hint:"最終評価・リピート判定"}
+    ]
+  },
+  lash: {
+    label:"まつげ美容液",
+    period:"2か月",
+    body:"まぶた・まつげ",
+    stateLabel:"まぶた・まつげの状態（使いはじめ）",
+    tags:"#まつげ美容液 #成分",
+    note:"まつげは生え替わりに1〜3か月かかります。2週間では判断せず、2か月は続けてから決めてください。しみる・充血・まぶたのかゆみが出たら、日数を待たずに中止を。",
+    flags:["しみる","かゆみ","充血","まぶたの乾燥","色素沈着が気になる","べたつき"],
+    stages:[
+      {k:"d0",  label:"初回",   day:0,  hint:"しみないか・塗りやすさ"},
+      {k:"d7",  label:"1週間",  day:7,  hint:"まぶたのかゆみ・赤み"},
+      {k:"d14", label:"2週間",  day:14, hint:"抜けにくさ・手ざわり"},
+      {k:"d30", label:"1か月",  day:30, hint:"ハリ・コシの印象"},
+      {k:"d60", label:"2か月",  day:60, hint:"全体の印象・続けるか"},
+      {k:"fin", label:"使い切り",day:null,hint:"最終評価・リピート判定"}
+    ]
+  }
+};
 const SOURCES = ["自費購入","提供（PR）","サンプル"];
 const VERDICTS = ["◎","○","△","×"];
 const PLATFORMS = ["X","Xスレッド","Instagram","note","動画台本","＠cosme・LIPS"];
@@ -157,10 +185,15 @@ let data = [];
 let cur = null;
 let tab = "X";
 
+function cat(p){ return CATS[(p && p.cat) || "skin"] || CATS.skin; }
+function stagesOf(p){ return cat(p).stages; }
+function midStages(p){ return stagesOf(p).filter(s=>s.k!=="d0" && s.k!=="fin"); }
+
 function load(){
   try{ data = JSON.parse(localStorage.getItem(KEY) || "[]"); }
   catch(e){ data = []; }
   if(!Array.isArray(data)) data = [];
+  data.forEach(p=>{ if(!p.cat) p.cat = "skin"; if(!p.logs) p.logs = {}; });
 }
 function save(){
   try{ localStorage.setItem(KEY, JSON.stringify(data)); }
@@ -180,13 +213,12 @@ function daysFrom(d){
 function esc(s){ return (s||"").toString(); }
 function v(s, ph){ const t = esc(s).trim(); return t ? t : "【"+ph+"】"; }
 function attr(s){ return esc(s).replace(/"/g,"&quot;"); }
+function lg(p, k){ return (p.logs && p.logs[k]) || {note:"",flags:[],date:""}; }
 
 function blank(){
-  const p = {id:Date.now().toString(36), name:"", brand:"", size:"", price:"",
+  return {id:Date.now().toString(36), cat:"skin", name:"", brand:"", size:"", price:"",
     source:"自費購入", startDate:today(), skin:"", ingredients:"", claim:"",
     amount:"", timing:"夜", withProducts:"", verdict:"", fit:"", logs:{}};
-  STAGES.forEach(s=>p.logs[s.k]={date:"",note:"",flags:[]});
-  return p;
 }
 function get(id){ return data.find(p=>p.id===id); }
 
@@ -198,10 +230,10 @@ function renderList(){
   if(!data.length){
     el.innerHTML = `<div class="empty">
       <h2>使ったコスメを、<br>同じ条件で記録する。</h2>
-      <p>成分と使い方、そして日ごとの変化を分けて残しておくと、あとから読み返せるレビューになります。</p>
+      <p>成分と使い方、そして日ごとの変化を分けて残しておくと、あとから読み返せるレビューになります。スキンケアとまつげ美容液に対応しています。</p>
       <ol class="steps">
         <li><b>使いはじめた製品を追加</b><span>商品名と開始日だけでも大丈夫</span></li>
-        <li><b>決めた日に気づいたことを書く</b><span>初回・3日・7日・14日・使い切り</span></li>
+        <li><b>決めた日に気づいたことを書く</b><span>種類に合わせて記録する日が変わります</span></li>
         <li><b>投稿文をコピーする</b><span>X・Instagram・note などの形に整います</span></li>
       </ol>
       <button class="btn" onclick="newItem()">最初の製品を追加</button>
@@ -211,10 +243,11 @@ function renderList(){
   }
   el.innerHTML = data.map(p=>{
     const d = daysFrom(p.startDate);
-    const done = STAGES.filter(s=>(p.logs[s.k]?.note||"").trim()).length;
+    const st = stagesOf(p);
+    const done = st.filter(s=>(lg(p,s.k).note||"").trim()).length;
     return `<button class="item" onclick="open_('${p.id}')">
       <div class="nm">${p.source==="提供（PR）"?'<span class="pr">PR</span>':""}${v(p.name,"商品名")}</div>
-      <div class="meta">${esc(p.brand)||"ブランド未入力"} ・ ${d===null?"開始日未設定":"開始から"+d+"日"} ・ 記録 ${done}/5${p.verdict?" ・ "+p.verdict:""}</div>
+      <div class="meta">${cat(p).label} ・ ${esc(p.brand)||"ブランド未入力"} ・ ${d===null?"開始日未設定":"開始から"+d+"日"} ・ 記録 ${done}/${st.length}${p.verdict?" ・ "+p.verdict:""}</div>
     </button>`;
   }).join("") + `<div class="foot">
       <button class="btn ghost small" onclick="exportJson()">書き出し</button>
@@ -230,8 +263,9 @@ function renderHelp(){
   document.getElementById("view").innerHTML = `<div class="help">
     <div class="card">
       <h2 style="margin-top:0">1. 使いはじめる日に、製品を追加する</h2>
-      <p>右上の「追加」を押すと記録がひとつできます。最初に入れておくのは次の3つです。</p>
+      <p>右上の「追加」を押すと記録がひとつできます。最初に入れておくのは次の4つです。</p>
       <ul>
+        <li><b>種類</b>（スキンケア／まつげ美容液）</li>
         <li><b>商品名とブランド</b></li>
         <li><b>開始日</b>（ここから経過日数が計算されます）</li>
         <li><b>入手</b>（自費購入／提供（PR）／サンプル）</li>
@@ -241,13 +275,14 @@ function renderHelp(){
 
     <div class="card">
       <h2 style="margin-top:0">2. 使う条件をそろえる</h2>
-      <p>「1回の使用量」「朝・夜」「併用品」「使いはじめの肌状態」を書いておきます。ここがレビューのいちばん大事なところです。</p>
+      <p>「1回の使用量」「朝・夜」「併用品」「使いはじめの状態」を書いておきます。ここがレビューのいちばん大事なところです。</p>
       <p>同じ化粧品でも、量や併用品が違えば結果は変わります。条件が書いてあるレビューは、読んだ人が自分に当てはめて考えられます。</p>
     </div>
 
     <div class="card">
       <h2 style="margin-top:0">3. 決めた日に記録する</h2>
-      <p>記録する日は5回だけです。開始日からの日数を見て、次に書く欄が印で示されます。</p>
+      <p>記録する日は種類ごとに決まっています。開始日からの日数を見て、次に書く欄が印で示されます。</p>
+      <p><b>スキンケア（全5回）</b></p>
       <ul>
         <li><b>初回</b> … 刺激、香り、テクスチャー</li>
         <li><b>3日目</b> … 赤み、かゆみ、ニキビ</li>
@@ -255,19 +290,35 @@ function renderHelp(){
         <li><b>14日目</b> … 続けてみての総合</li>
         <li><b>使い切り</b> … 最終評価とリピート判定</li>
       </ul>
-      <p>上のボタン（刺激・赤み・かゆみ・ニキビ・乾燥・ベタつき）は、当てはまるものを押すだけ。メモは一言で十分です。</p>
+      <p><b>まつげ美容液（全6回）</b></p>
+      <ul>
+        <li><b>初回</b> … しみないか、塗りやすさ</li>
+        <li><b>1週間</b> … まぶたのかゆみ、赤み</li>
+        <li><b>2週間</b> … 抜けにくさ、手ざわり</li>
+        <li><b>1か月</b> … ハリ・コシの印象</li>
+        <li><b>2か月</b> … 全体の印象、続けるか</li>
+        <li><b>使い切り</b> … 最終評価とリピート判定</li>
+      </ul>
+      <p>上のボタンは、当てはまるものを押すだけ。メモは一言で十分です。</p>
       <p class="muted">赤みやかゆみが出たら、日数を待たずに使うのをやめてください。</p>
+    </div>
+
+    <div class="card">
+      <h2 style="margin-top:0">まつげ美容液のとき</h2>
+      <p>まつげは生え替わりに1〜3か月かかります。2週間では変化を判断できないので、記録する期間を2か月まで長くしてあります。</p>
+      <p>目のまわりは皮ふが薄く、トラブルが起きやすい場所です。<b>しみる・充血・まぶたのかゆみや腫れ</b>が出たときは、日数を待たずに中止して眼科に相談してください。まぶたが黒ずんできたと感じたときも同じです。</p>
+      <p class="muted">書き方の注意：まつげ美容液は化粧品なので、「まつげが伸びる」「生える」「育毛」といった医薬品のような書き方はできません。書けるのは「うるおいを与える」「ハリ・コシのある印象」など、メーカーが公表している範囲までです。写真を載せるときも、条件（距離・明るさ・ビューラーやマスカラの有無）をそろえてください。</p>
     </div>
 
     <div class="card">
       <h2 style="margin-top:0">4. 結論を選ぶ</h2>
       <p>◎（おすすめ）／○（条件つき）／△（ふつう）／×（なし）から選び、「向く人・向かない人」を書きます。</p>
-      <p>14日は「明らかに合わないかどうか」を見る期間です。リピートするかは、できれば1本使い切ってから決めてください。季節や湿度でも感じ方は変わります。</p>
+      <p>スキンケアの14日、まつげ美容液の2か月は、どちらも「合うかどうか」を見るための期間です。リピートするかは、できれば1本使い切ってから決めてください。季節や湿度でも感じ方は変わります。</p>
     </div>
 
     <div class="card">
       <h2 style="margin-top:0">5. 投稿文をコピーする</h2>
-      <p>いちばん下の「投稿文」でSNSを選ぶと、入力した内容がその形に整います。「コピー」を押して貼り付けるだけです。</p>
+      <p>いちばん下の「投稿文」でSNSを選ぶと、入力した内容がその形に整います。「コピー」を押して貼り付けるだけです。種類に合わせて期間の書き方も変わります。</p>
       <ul>
         <li><b>X</b>／<b>Xスレッド</b></li>
         <li><b>Instagram</b>（キャプション）</li>
@@ -293,6 +344,8 @@ function renderHelp(){
       <p>一覧の「書き出し」でJSONを保存し、新しい端末でこのページを開いて「読み込み」をしてください。</p>
       <p class="q">記録が消えました</p>
       <p>ブラウザの履歴やサイトデータを消すと、いっしょに消えます。ときどき書き出しておくと安心です。</p>
+      <p class="q">途中で種類を変えられますか？</p>
+      <p>変えられます。書いた記録は残ったまま、記録する日とチェック項目だけが切り替わります。</p>
       <p class="q">ホーム画面に置けますか？</p>
       <p>iPhoneは共有ボタンから「ホーム画面に追加」、Androidはメニューから「アプリをインストール」で、アプリのように開けます。</p>
       <p class="q">お金はかかりますか？</p>
@@ -315,11 +368,14 @@ function open_(id){
 
 function renderDetail(){
   const p = get(cur); if(!p) return renderList();
+  const c = cat(p);
   const d = daysFrom(p.startDate);
   const el = document.getElementById("view");
   el.innerHTML = `
   <div class="card">
     <h2>基本情報</h2>
+    <label for="f-cat">種類</label>
+    <select id="f-cat">${Object.keys(CATS).map(k=>`<option value="${k}" ${k===(p.cat||"skin")?"selected":""}>${CATS[k].label}</option>`).join("")}</select>
     <label for="f-name">商品名</label><input id="f-name" value="${attr(p.name)}">
     <div class="row">
       <div><label for="f-brand">ブランド</label><input id="f-brand" value="${attr(p.brand)}"></div>
@@ -333,22 +389,22 @@ function renderDetail(){
       <div><label for="f-start">開始日</label><input id="f-start" type="date" value="${attr(p.startDate)}"></div>
       <div><label for="f-timing">タイミング</label><select id="f-timing">${["朝","夜","朝夜"].map(s=>`<option ${s===p.timing?"selected":""}>${s}</option>`).join("")}</select></div>
     </div>
-    <label for="f-amount">1回の使用量</label><input id="f-amount" value="${attr(p.amount)}" placeholder="2プッシュ など">
-    <label for="f-skin">肌質・使いはじめの肌状態</label><input id="f-skin" value="${attr(p.skin)}">
+    <label for="f-amount">1回の使用量</label><input id="f-amount" value="${attr(p.amount)}" placeholder="${p.cat==="lash"?"片目1回なぞる など":"2プッシュ など"}">
+    <label for="f-skin">${c.stateLabel}</label><input id="f-skin" value="${attr(p.skin)}">
     <label for="f-with">併用品</label><input id="f-with" value="${attr(p.withProducts)}">
     <label for="f-ing">主な成分・注意成分</label><textarea id="f-ing">${esc(p.ingredients)}</textarea>
     <label for="f-claim">メーカーが言っていること</label><textarea id="f-claim">${esc(p.claim)}</textarea>
   </div>
   <div class="card"><h2>経過 ${d===null?"":`<span class="muted">（開始から${d}日）</span>`}</h2></div>
-  ${STAGES.map(s=>{
-    const lg = p.logs[s.k] || {note:"",flags:[],date:""};
-    const filled = (lg.note||"").trim().length>0;
+  ${stagesOf(p).map(s=>{
+    const l = lg(p,s.k);
+    const filled = (l.note||"").trim().length>0;
     const due = d!==null && s.day!==null && d>=s.day && !filled;
     return `<div class="stage ${filled?"done":""} ${due?"now":""}">
       <div class="card">
         <div class="hd"><b>${s.label}</b><span>${s.hint}</span></div>
-        <div class="chips">${FLAGS.map(f=>`<button class="chip" aria-pressed="${(lg.flags||[]).includes(f)}" onclick="toggleFlag('${s.k}','${f}')">${f}</button>`).join("")}</div>
-        <textarea id="lg-${s.k}" placeholder="気づいたことを書く">${esc(lg.note)}</textarea>
+        <div class="chips">${c.flags.map(f=>`<button class="chip" aria-pressed="${(l.flags||[]).includes(f)}" onclick="toggleFlag('${s.k}','${f}')">${f}</button>`).join("")}</div>
+        <textarea id="lg-${s.k}" placeholder="気づいたことを書く">${esc(l.note)}</textarea>
       </div>
     </div>`;
   }).join("")}
@@ -356,7 +412,7 @@ function renderDetail(){
     <h2>結論</h2>
     <div class="verdict">${VERDICTS.map(x=>`<button class="chip" aria-pressed="${p.verdict===x}" onclick="setVerdict('${x}')">${x}</button>`).join("")}</div>
     <label for="f-fit">向く人・向かない人</label><textarea id="f-fit">${esc(p.fit)}</textarea>
-    <p class="muted" style="margin:10px 0 0">14日は合わないかを見る期間。リピート判定は使い切り後に。</p>
+    <p class="muted" style="margin:10px 0 0">${c.note}</p>
   </div>
   <div class="card out">
     <h2>投稿文</h2>
@@ -369,19 +425,21 @@ function renderDetail(){
     <button class="btn plain" style="color:var(--warn)" onclick="del()">この記録を削除</button>
   </div>`;
 
-  const bind = (id, key)=>{
+  const bind = (id, key, rerender)=>{
     const n = document.getElementById(id); if(!n) return;
-    const h = ()=>{ const q=get(cur); q[key]=n.value; save(); refreshOut(); };
+    const h = ()=>{ const q=get(cur); q[key]=n.value; save(); rerender ? renderDetail() : refreshOut(); };
     n.addEventListener("input", h); n.addEventListener("change", h);
   };
+  bind("f-cat","cat",true);
   bind("f-name","name"); bind("f-brand","brand"); bind("f-size","size"); bind("f-price","price");
   bind("f-source","source"); bind("f-start","startDate"); bind("f-timing","timing");
   bind("f-amount","amount"); bind("f-skin","skin"); bind("f-with","withProducts");
   bind("f-ing","ingredients"); bind("f-claim","claim"); bind("f-fit","fit");
-  STAGES.forEach(s=>{
+  stagesOf(p).forEach(s=>{
     const n = document.getElementById("lg-"+s.k); if(!n) return;
     n.addEventListener("input", ()=>{
-      const q=get(cur); q.logs[s.k] = q.logs[s.k]||{flags:[],date:""};
+      const q=get(cur); q.logs = q.logs||{};
+      q.logs[s.k] = q.logs[s.k]||{flags:[],date:""};
       q.logs[s.k].note = n.value;
       if(!q.logs[s.k].date) q.logs[s.k].date = today();
       save(); refreshOut();
@@ -390,10 +448,11 @@ function renderDetail(){
 }
 
 function toggleFlag(stage, f){
-  const p = get(cur); const lg = p.logs[stage] = p.logs[stage]||{note:"",flags:[],date:""};
-  lg.flags = lg.flags||[];
-  const i = lg.flags.indexOf(f);
-  if(i<0) lg.flags.push(f); else lg.flags.splice(i,1);
+  const p = get(cur); p.logs = p.logs||{};
+  const l = p.logs[stage] = p.logs[stage]||{note:"",flags:[],date:""};
+  l.flags = l.flags||[];
+  const i = l.flags.indexOf(f);
+  if(i<0) l.flags.push(f); else l.flags.splice(i,1);
   save(); renderDetail();
 }
 function setVerdict(x){ const p=get(cur); p.verdict = (p.verdict===x? "": x); save(); renderDetail(); }
@@ -412,91 +471,83 @@ function del(){
 }
 
 function logLine(p, k){
-  const lg = p.logs[k] || {};
-  const note = (lg.note||"").trim();
-  const fl = (lg.flags||[]).length ? "（"+lg.flags.join("・")+"）" : "";
+  const l = lg(p,k);
+  const note = (l.note||"").trim();
+  const fl = (l.flags||[]).length ? "（"+l.flags.join("・")+"）" : "";
   return note ? note + fl : "【】";
 }
 function prLine(p){
   return p.source==="提供（PR）" ? "PR｜提供：" + v(p.brand,"ブランド名") + "\n\n" : "";
 }
 function cond(p){
-  return "肌：" + v(p.skin,"肌質／状態")
-    + "\n量：1回" + v(p.amount,"○プッシュ") + "・" + (p.timing||"夜")
+  return cat(p).body + "：" + v(p.skin,"状態")
+    + "\n量：1回" + v(p.amount,"使用量") + "・" + (p.timing||"夜")
     + "\n併用：" + v(p.withProducts,"製品名")
     + "\n入手：" + (p.source||"自費購入");
 }
+function lines(p, list, sep){
+  return list.map(s=>s.label + "：" + logLine(p,s.k)).join(sep||"\n");
+}
 function build(p, kind){
   if(!p) return "";
+  const c = cat(p);
   const n = v(p.name,"商品名");
   const verdict = p.verdict || "【◎／○／△／×】";
+  const all = stagesOf(p).filter(s=>s.k!=="fin");
+  const mid = midStages(p).slice(-3);
   if(kind==="X"){
-    return prLine(p) + n + "を14日使ったので記録\n\n" + cond(p)
-      + "\n\n3日目：" + logLine(p,"d3")
-      + "\n7日目：" + logLine(p,"d7")
-      + "\n14日目：" + logLine(p,"d14")
-      + "\n\n結論：" + verdict + "\n\n※私の肌での記録です";
+    return prLine(p) + n + "を" + c.period + "使ったので記録\n\n" + cond(p)
+      + "\n\n" + lines(p, mid)
+      + "\n\n結論：" + verdict + "\n\n※私の" + c.body + "での記録です";
   }
   if(kind==="Xスレッド"){
     return prLine(p)
-      + "1/ " + n + "を14日間、条件を固定して使ったので記録を残します。入手は" + (p.source||"自費購入") + "です。\n\n"
+      + "1/ " + n + "を" + c.period + "、条件を固定して使ったので記録を残します。入手は" + (p.source||"自費購入") + "です。\n\n"
       + "2/ 使用条件\n" + cond(p) + "\n条件を書かないレビューは再現性がないので、まずここから。\n\n"
       + "3/ 客観情報\n成分で注目したのは" + v(p.ingredients,"成分")
       + "\nメーカーの訴求：" + v(p.claim,"訴求")
       + "\n容量・価格：" + v(p.size,"容量") + "／" + v(p.price,"価格") + "\n\n"
-      + "4/ 経過\n初回：" + logLine(p,"d0")
-      + "\n3日：" + logLine(p,"d3")
-      + "\n7日：" + logLine(p,"d7")
-      + "\n14日：" + logLine(p,"d14") + "\n\n"
+      + "4/ 経過\n" + lines(p, all) + "\n\n"
       + "5/ 現時点の結論：" + verdict + "\n" + (p.fit||"")
-      + "\n14日は合わないかを見る期間なので、リピート判定は使い切ってから追記します。";
+      + "\nリピート判定は使い切ってから追記します。";
   }
   if(kind==="Instagram"){
-    return prLine(p) + n + "を条件を固定して14日間。\n\n"
+    return prLine(p) + n + "を条件を固定して" + c.period + "。\n\n"
       + "▼使用条件\n" + cond(p) + "\n\n"
       + "▼客観情報\n容量" + v(p.size,"容量") + "／価格" + v(p.price,"価格")
       + "\n成分で注目したのは" + v(p.ingredients,"成分") + "\n\n"
-      + "▼経過\n初回：" + logLine(p,"d0")
-      + "\n3日：" + logLine(p,"d3")
-      + "\n7日：" + logLine(p,"d7")
-      + "\n14日：" + logLine(p,"d14") + "\n\n"
+      + "▼経過\n" + lines(p, all) + "\n\n"
       + "▼結論\n" + verdict + "\n" + v(p.fit,"こういう人に向く／向かない") + "\n\n"
       + "使い切ったら最終判定を追記します。\n※個人の使用感で、効果を保証するものではありません\n\n"
-      + "#スキンケア #成分 #" + (esc(p.brand).replace(/\s/g,"") || "ブランド名");
+      + c.tags + " #" + (esc(p.brand).replace(/\s/g,"") || "ブランド名");
   }
   if(kind==="note"){
-    return "タイトル：" + n + "を条件固定で14日間使った記録｜成分・使用感・経過\n\n"
+    return "タイトル：" + n + "を条件固定で" + c.period + "使った記録｜成分・使用感・経過\n\n"
       + "## この記事の前提\n" + (p.source||"自費購入") + "。" + (p.source==="提供（PR）"?"提供を受けていますが、記録はそのまま載せます。":"") + "\n\n"
-      + "## 検証条件\n" + cond(p) + "\n期間：14日（開始 " + v(p.startDate,"開始日") + "）\n\n"
+      + "## 検証条件\n" + cond(p) + "\n期間：" + c.period + "（開始 " + v(p.startDate,"開始日") + "）\n\n"
       + "## 製品の客観情報\n成分：" + v(p.ingredients,"全成分と注目成分")
       + "\nメーカー公表の訴求：" + v(p.claim,"訴求")
       + "\n容量・価格：" + v(p.size,"容量") + "／" + v(p.price,"価格") + "\n\n"
-      + "## 使用記録\n### 初回\n" + logLine(p,"d0")
-      + "\n\n### 3日目\n" + logLine(p,"d3")
-      + "\n\n### 7日目\n" + logLine(p,"d7")
-      + "\n\n### 14日目\n" + logLine(p,"d14") + "\n\n"
+      + "## 使用記録\n" + all.map(s=>"### " + s.label + "\n" + logLine(p,s.k)).join("\n\n") + "\n\n"
       + "## どんな人に向くか、向かないか\n" + v(p.fit,"向く人／向かない人") + "\n\n"
       + "## 現時点の結論\n" + verdict + "\n\n"
       + "## 使い切り後の追記\n" + logLine(p,"fin");
   }
   if(kind==="動画台本"){
-    return "0-2秒：" + n + "、14日使った結論から言います\n"
+    return "0-2秒：" + n + "、" + c.period + "使った結論から言います\n"
       + "2-6秒：" + verdict + "です。理由は3つ\n"
       + "6-14秒：テロップ／" + cond(p).replace(/\n/g,"・") + "\n"
-      + "14-24秒：初回と3日目／" + logLine(p,"d0") + "・" + logLine(p,"d3") + "\n"
-      + "24-34秒：7日〜14日／" + logLine(p,"d7") + "・" + logLine(p,"d14") + "\n"
+      + "14-24秒：はじめの印象／" + logLine(p,"d0") + "\n"
+      + "24-34秒：その後／" + lines(p, mid, " ／ ") + "\n"
       + "34-40秒：" + v(p.fit,"向く人・向かない人") + "。使い切ったら追記します\n\n"
       + "固定テロップ：" + (p.source==="提供（PR）" ? "PR（提供：" + v(p.brand,"ブランド名") + "）" : p.source||"自費購入");
   }
   return "【評価】" + verdict
-    + "\n【使用期間】14日（継続中）"
+    + "\n【使用期間】" + c.period + "（継続中）"
     + "\n【入手】" + (p.source||"自費購入")
-    + "\n【肌質】" + v(p.skin,"肌質")
+    + "\n【" + c.body + "】" + v(p.skin,"状態")
     + "\n【使い方】1回" + v(p.amount,"量") + "／" + (p.timing||"夜") + "／併用" + v(p.withProducts,"製品名")
-    + "\n\n初回：" + logLine(p,"d0")
-    + "\n3日：" + logLine(p,"d3")
-    + "\n7日：" + logLine(p,"d7")
-    + "\n14日：" + logLine(p,"d14")
+    + "\n\n" + lines(p, all)
     + "\n\n向く人・向かない人：" + v(p.fit,"")
     + "\nリピート：使い切り後に判断";
 }
@@ -519,7 +570,7 @@ function importJson(){
         const arr = JSON.parse(r.result);
         if(!Array.isArray(arr)) throw 0;
         const ids = new Set(data.map(x=>x.id));
-        arr.forEach(x=>{ if(!ids.has(x.id)) data.push(x); });
+        arr.forEach(x=>{ if(!ids.has(x.id)){ if(!x.cat) x.cat="skin"; data.push(x); } });
         save(); renderList(); toast("読み込みました");
       }catch(e){ toast("このファイルは読み込めませんでした"); }
     };
